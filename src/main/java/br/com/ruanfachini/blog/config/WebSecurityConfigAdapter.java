@@ -1,7 +1,9 @@
 package br.com.ruanfachini.blog.config;
 
+import br.com.ruanfachini.blog.domains.Role;
 import br.com.ruanfachini.blog.domains.User;
 import br.com.ruanfachini.blog.domains.dto.UserDetailDTO;
+import br.com.ruanfachini.blog.repositories.IRoleRepository;
 import br.com.ruanfachini.blog.repositories.IUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +13,10 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -27,12 +33,25 @@ public class WebSecurityConfigAdapter extends WebSecurityConfigurerAdapter {
     }
 
     @Autowired
-    public void authenticationManager(AuthenticationManagerBuilder builder, IUserRepository usuarioRepository) throws Exception {
-        if (usuarioRepository.count() == 0) {
-            usuarioRepository.save(new User("admin", passwordEncoder().encode("admin")));
+    public void authenticationManager(AuthenticationManagerBuilder builder, IUserRepository userRepository,
+                                      IRoleRepository roleRepository)
+            throws Exception {
+
+        if (roleRepository.count() == 0) {
+            Role role = new Role("ADMIN");
+            roleRepository.save(role);
         }
 
-        builder.userDetailsService(login -> new UserDetailDTO(usuarioRepository.findByLogin(login)))
+        if (userRepository.count() == 0) {
+            String login = "admin";
+            String password = passwordEncoder().encode("admin");
+            Role role = roleRepository.findByName("ADMNI");
+            List<Role> roles = Collections.singletonList(role);
+            User user = new User(login, password, roles);
+            userRepository.save(user);
+        }
+
+        builder.userDetailsService(login -> new UserDetailDTO(userRepository.findByLogin(login)))
                 .passwordEncoder(passwordEncoder());
     }
 
